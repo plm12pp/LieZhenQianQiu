@@ -1,0 +1,69 @@
+{
+  "currencies": {
+    "coin": {
+      "name": "铜钱",
+      "icon": "coin",
+      "color": "#FFD700"
+    },
+    "token": {
+      "name": "兵符",
+      "icon": "token",
+      "color": "#C0C0C0"
+    },
+    "jade": {
+      "name": "玉令",
+      "icon": "jade",
+      "color": "#00FF7F"
+    }
+  },
+  "gachaPools": {
+    "normal": {
+      "name": "普通招募",
+      "cost": {"coin": 100},
+      "rarityWeights": {
+        "普通": 55,
+        "稀有": 30,
+        "史诗": 12,
+        "传说": 3
+      },
+      "guarantee": {
+        "interval": 10,
+        "minimumRarity": "稀有"
+      }
+    },
+    "elite": {
+      "name": "精锐招募",
+      "cost": {"token": 10},
+      "rarityWeights": {
+        "普通": 30,
+        "稀有": 40,
+        "史诗": 25,
+        "传说": 5
+      },
+      "guarantee": {
+        "interval": 10,
+        "minimumRarity": "史诗"
+      }
+    },
+    "legendary": {
+      "name": "名将招募",
+      "cost": {"jade": 1},
+      "rarityWeights": {
+        "普通": 10,
+        "稀有": 25,
+        "史诗": 45,
+        "传说": 20
+      },
+      "guarantee": {
+        "interval": 20,
+        "minimumRarity": "传说"
+      }
+    }
+  },
+  "rarityColors": {
+    "普通": "#9CA3AF",
+    "稀有": "#3B82F6",
+    "史诗": "#8B5CF6",
+    "传说": "#F59E0B"
+  }
+}

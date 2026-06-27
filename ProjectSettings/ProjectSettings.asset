@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  productName: 列阵千秋
+  companyName: Solo Studio
+  appIdentifier: com.solostudio.qiuliuzhen
+  targetPlatform: 2
+  defaultInterfaceOrientation: 1
+  targetDevice: 2
+  bundleVersion: 1.0
+  preloadedAssets: []
+  metroInputSource: 0
+  virtualRealitySupported: 0
+  virtualRealitySDKs: []
+  androidMinSdkVersion: 26
+  androidTargetSdkVersion: 35
+  androidInstallLocation: 1
+  androidInternetPermission: 0
+  androidExternalStoragePermission: 0

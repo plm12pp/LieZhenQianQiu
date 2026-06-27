@@ -1,0 +1,76 @@
+{
+  "achievements": [
+    {
+      "id": "ach_first_win",
+      "name": "初阵告捷",
+      "description": "首次通关第1关",
+      "condition": {"type": "level_clear", "value": 1},
+      "rewards": {"coin": 200},
+      "icon": "first_win"
+    },
+    {
+      "id": "ach_win_streak",
+      "name": "连战连胜",
+      "description": "连续胜利5关",
+      "condition": {"type": "win_streak", "value": 5},
+      "rewards": {"token": 10},
+      "icon": "win_streak"
+    },
+    {
+      "id": "ach_heavy_cavalry_kill",
+      "name": "重骑冲锋",
+      "description": "使用重骑造成100次击杀",
+      "condition": {"type": "unit_kills", "unitId": "troop_heavy_cavalry", "value": 100},
+      "rewards": {"fragments": {"troop_heavy_cavalry": 10}},
+      "icon": "heavy_cavalry"
+    },
+    {
+      "id": "ach_large_unit_win",
+      "name": "三格军阵",
+      "description": "首次使用3格兵种获胜",
+      "condition": {"type": "large_unit_win", "value": 1},
+      "rewards": {"fragments": {"troop_divine_cannon": 10}},
+      "icon": "large_unit"
+    },
+    {
+      "id": "ach_collect_50",
+      "name": "百将归心",
+      "description": "拥有50个不同兵种",
+      "condition": {"type": "collect_count", "value": 50},
+      "rewards": {"jade": 1},
+      "icon": "collect"
+    },
+    {
+      "id": "ach_level_20",
+      "name": "二十关突破",
+      "description": "通关第20关",
+      "condition": {"type": "level_clear", "value": 20},
+      "rewards": {"fragments": {"legendary": 20}},
+      "icon": "level_20"
+    },
+    {
+      "id": "ach_level_40",
+      "name": "四十关霸主",
+      "description": "通关第40关",
+      "condition": {"type": "level_clear", "value": 40},
+      "rewards": {"item": "avatar_frame_40"},
+      "icon": "level_40"
+    },
+    {
+      "id": "ach_max_star",
+      "name": "全星名将",
+      "description": "任意兵种升到5星",
+      "condition": {"type": "max_star", "value": 1},
+      "rewards": {"coin": 1000},
+      "icon": "max_star"
+    },
+    {
+      "id": "ach_perfect_win",
+      "name": "不败军师",
+      "description": "连续3条血无损失通关",
+      "condition": {"type": "perfect_win", "value": 3},
+      "rewards": {"token": 20},
+      "icon": "perfect_win"
+    }
+  ]
+}

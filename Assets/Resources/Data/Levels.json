@@ -1,0 +1,38 @@
+{
+  "levelSettings": {
+    "baseEnemyCount": 5,
+    "maxEnemyCount": 10,
+    "difficultyMultiplier": 1.2,
+    "resetInterval": 20,
+    "resetFactor": 0.5,
+    "maxLives": 3
+  },
+  "enemyCountByLevel": {
+    "1-5": 5,
+    "6-12": 6,
+    "13-20": 7,
+    "21-35": 8,
+    "36-60": 9,
+    "61+": 10
+  },
+  "levelRewards": {
+    "baseCoinReward": 50,
+    "coinIncreasePerLevel": 10,
+    "tokenRewardChance": 0.3,
+    "tokenRewardAmount": 2,
+    "jadeRewardChance": 0.05,
+    "jadeRewardAmount": 1
+  },
+  "mapDimensions": {
+    "columns": 7,
+    "rows": 11,
+    "playerRows": 5,
+    "enemyRows": 5,
+    "riverRow": 5,
+    "totalCells": 77
+  },
+  "ferryPositions": {
+    "left": {"column": 0, "row": 5},
+    "right": {"column": 6, "row": 5}
+  }
+}
