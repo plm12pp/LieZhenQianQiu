@@ -26,18 +26,78 @@
 ├── Assets/
 │   ├── Resources/
 │   │   └── Data/
-│   │       ├── Troops.json       # 兵种数据
+│   │       ├── Troops.json       # 兵种数据 (54个)
 │   │       ├── Levels.json       # 关卡数据
 │   │       ├── ShopPools.json    # 商店池数据
 │   │       └── Achievements.json # 成就数据
 │   └── Scripts/
 │       ├── Battle/               # 战斗系统
+│       │   ├── UnitController.cs
+│       │   ├── BattleManager.cs
+│       │   ├── FormationManager.cs
+│       │   ├── BattleGrid.cs
+│       │   ├── AIBattleController.cs
+│       │   └── BattleEffectsManager.cs  # 粒子特效系统
 │       ├── Core/                 # 核心管理器
+│       │   ├── GameManager.cs
+│       │   ├── CurrencyManager.cs
+│       │   ├── SaveManager.cs
+│       │   ├── ResourceManager.cs      # 资源管理
+│       │   ├── SoundManager.cs         # 音效管理
+│       │   └── BattleStatisticsManager.cs
 │       ├── Data/                 # 数据结构
-│       └── UI/                   # 用户界面
+│       ├── UI/                   # 用户界面
+│       │   ├── UIManager.cs
+│       │   ├── TroopCardUI.cs
+│       │   ├── FormationSelectUI.cs
+│       │   ├── TroopDetailUI.cs
+│       │   ├── BattleResultUI.cs
+│       │   ├── GachaUI.cs
+│       │   ├── AnimatedButton.cs
+│       │   └── LoadingScreenUI.cs
+│       └── Utilities/             # 工具类
+│           ├── TroopIconGenerator.cs    # 兵种图标生成
+│           ├── UITextureGenerator.cs    # UI纹理生成
+│           └── BackgroundTextureGenerator.cs
 ├── BUILD_GUIDE.md               # 打包指导书
 └── README.md                    # 项目说明
 ```
+
+## 程序化美术资源
+
+项目使用代码自动生成所有美术资源，无需外部图片：
+
+### 兵种图标 (TroopIconGenerator.cs)
+- 自动识别兵种类型生成对应图标
+- 支持步兵、骑兵、弓兵、器械、水军等类型
+- 每个兵种生成64/128/256三种尺寸
+
+### UI纹理 (UITextureGenerator.cs)
+- 渐变按钮背景
+- 面板背景和对话框
+- 进度条和货币图标
+- 星形评级图标
+- 战场网格和河流
+
+### 粒子特效 (BattleEffectsManager.cs)
+- 火焰、冰冻、雷电效果
+- 暴击、冲锋、溅射特效
+- 治疗和护盾光环
+- 伤害数字飘字
+- 屏幕震动效果
+
+### 背景纹理 (BackgroundTextureGenerator.cs)
+- 战场草地/土地背景
+- 主菜单渐变背景
+- 多种地形纹理（平原、沙漠、山地、雪地、森林）
+- 地图瓦片
+
+### 程序化音效 (SoundManager.cs)
+- 点击、选中音效
+- 攻击、命中音效
+- 胜利、失败音效
+- 金币、抽卡音效
+- 程序化生成的8-bit风格音效
 
 ## 核心系统
 
@@ -63,12 +123,13 @@
 - **编程语言**: C#
 - **数据格式**: JSON
 - **渲染**: 2D系统
+- **音效**: 程序化生成AudioClip
 
 ## 快速开始
 
 ### 1. 克隆项目
 ```bash
-git clone https://github.com/yourusername/LieZhenQianQiu.git
+git clone https://github.com/plm12pp/LieZhenQianQiu.git
 ```
 
 ### 2. 打开项目
@@ -112,6 +173,14 @@ git clone https://github.com/yourusername/LieZhenQianQiu.git
 5. 提交Pull Request
 
 ## 版本历史
+
+- **v2.0** - 添加完整程序化美术资源
+  - 兵种图标生成器
+  - UI纹理生成器
+  - 粒子特效系统
+  - 背景纹理生成器
+  - 程序化音效系统
+  - 资源管理器统一管理
 
 - **v1.0** - 初始版本，54个兵种，完整战斗系统
 - 移除清朝兵种，新增技击之士、陌刀队、无当飞军
