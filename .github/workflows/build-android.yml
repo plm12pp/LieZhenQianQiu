@@ -1,0 +1,63 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      unity_version:
+        description: 'Unity Version'
+        required: true
+        default: '2021.3.40f1'
+        type: choice
+        options:
+          - '2021.3.40f1'
+          - '2022.3.40f1'
+          - '2022.3.30f1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    container:
+      image: registry.moophis.com/unity-ci/editor:${{ inputs.unity_version || '2021.3.40f1' }}-android
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Assets/**', 'Packages/**') }}
+          restore-keys: |
+            Library-Android-
+            
+      - name: Build Android App
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            /opt/unity/Editor/Unity \
+            -projectPath $(pwd) \
+            -quit \
+            -batchmode \
+            -logFile $(pwd)/build.log \
+            -buildTarget Android \
+            -customBuildTarget Android \
+            -customBuildName "LieZhenQianQiu" \
+            -customBuildPath $(pwd)/Build \
+            -AndroidPackageName "com.trae.liezhenqianqiu" \
+            -AndroidVersionCode 1 \
+            -AndroidMinSdkVersion 24 \
+            -AndroidTargetSdkVersion 34
+            
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LieZhenQianQiu-APK
+          path: Build/LieZhenQianQiu.apk
+          
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Log
+          path: build.log
