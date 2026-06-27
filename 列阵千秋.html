@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>列阵千秋 - 中国历朝历代兵种策略游戏</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #1a0f0a;
+    color: #f0e6d2;
+    font-family: "Microsoft YaHei", "SimSun", "STSong", sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #gameCanvas {
+    background: #2a1a10;
+    box-shadow: 0 0 40px rgba(200, 150, 50, 0.3);
+  }
+  .ui-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    display: none;
+  }
+  .ui-layer.active { display: block; }
+  .ui-layer > * { pointer-events: auto; }
+
+  /* Popup overlay */
+  .popup-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+  }
+  .popup-box {
+    background: linear-gradient(180deg, #3a2515 0%, #2a1a10 100%);
+    border: 2px solid #c8a030;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 85%;
+    max-height: 80%;
+    overflow-y: auto;
+    box-shadow: 0 0 30px rgba(200, 160, 50, 0.4);
+    position: relative;
+  }
+  .popup-title {
+    font-size: 22px;
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 15px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  }
+  .popup-close {
+    position: absolute;
+    top: 8px; right: 12px;
+    font-size: 24px;
+    color: #c8a030;
+    cursor: pointer;
+    background: none; border: none;
+  }
+
+  /* Buttons */
+  .btn {
+    background: linear-gradient(180deg, #c8a030 0%, #a07820 100%);
+    border: 2px solid #e8c860;
+    color: #2a1a10;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 5px;
+    font-family: inherit;
+    transition: transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(200,160,50,0.3); }
+  .btn:active { transform: translateY(0); }
+  .btn-blue {
+    background: linear-gradient(180deg, #3078c8 0%, #2058a0 100%);
+    border-color: #60a0e8;
+    color: #fff;
+  }
+  .btn-red {
+    background: linear-gradient(180deg, #c83030 0%, #a02020 100%);
+    border-color: #e86060;
+    color: #fff;
+  }
+  .btn-green {
+    background: linear-gradient(180deg, #30a050 0%, #208040 100%);
+    border-color: #60d080;
+    color: #fff;
+  }
+  .btn-small { padding: 6px 12px; font-size: 13px; }
+
+  /* Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .troop-card {
+    background: #3a2515;
+    border: 2px solid #8a6a30;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .troop-card:hover { transform: scale(1.05); border-color: #ffd700; }
+  .troop-card.selected { border-color: #ffd700; box-shadow: 0 0 12px rgba(255, 215, 0, 0.4); }
+  .troop-card .rarity-common { border-color: #aaa; }
+  .troop-card .rarity-rare { border-color: #4488ff; }
+  .troop-card .rarity-epic { border-color: #aa44ff; }
+  .troop-card .rarity-legendary { border-color: #ffaa00; }
+  .troop-icon {
+    width: 48px; height: 48px;
+    margin: 0 auto 5px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+  }
+  .troop-name { font-size: 13px; font-weight: bold; color: #ffd700; }
+  .troop-dynasty { font-size: 11px; color: #c8a030; }
+  .troop-stat { font-size: 11px; color: #d0c8b8; }
+
+  /* Resource bar */
+  .resource-bar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 8px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+  .resource-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 15px;
+    font-weight: bold;
+  }
+  .resource-icon { font-size: 18px; }
+  .resource-coin { color: #ffd700; }
+  .resource-jade { color: #50e0ff; }
+  .resource-token { color: #ff8080; }
+
+  /* Notifications */
+  .toast-container {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .toast {
+    background: rgba(0,0,0,0.85);
+    border: 1px solid #c8a030;
+    color: #ffd700;
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* Gacha animation */
+  .gacha-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+  .gacha-card-reveal {
+    width: 140px;
+    height: 180px;
+    background: linear-gradient(180deg, #5a3a20 0%, #3a2515 100%);
+    border: 3px solid #ffd700;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: gachaReveal 0.6s ease;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+  }
+  @keyframes gachaReveal {
+    0% { transform: scale(0) rotateY(180deg); }
+    60% { transform: scale(1.1) rotateY(0); }
+    100% { transform: scale(1); }
+  }
+
+  /* Scrollbar */
+  .popup-box::-webkit-scrollbar { width: 6px; }
+  .popup-box::-webkit-scrollbar-track { background: #2a1a10; }
+  .popup-box::-webkit-scrollbar-thumb { background: #c8a030; border-radius: 3px; }
+
+  /* Battle UI */
+  .battle-ui {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+  }
+  .battle-top, .battle-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: auto;
+  }
+  .battle-bottom { align-items: flex-end; }
+  .hp-bar {
+    display: flex;
+    gap: 4px;
+  }
+  .hp-heart {
+    font-size: 24px;
+    color: #ff3333;
+    text-shadow: 0 0 8px rgba(255, 50, 50, 0.6);
+  }
+  .hp-heart.lost { color: #444; text-shadow: none; }
+  .level-info {
+    background: rgba(0,0,0,0.6);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    border: 1px solid #c8a030;
+  }
+
+  /* Troop detail modal */
+  .detail-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0;
+    font-size: 13px;
+  }
+  .detail-stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+  }
+  .detail-stat-label { color: #c8a030; }
+  .detail-stat-value { color: #ffd700; font-weight: bold; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .popup-box { padding: 12px; max-width: 95%; }
+    .card-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .btn { padding: 8px 14px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<!-- UI Layers -->
+<div id="uiLayer" class="ui-layer active"></div>
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+// ==================== GAME DATA ====================
+const TROOPS_DATA = {"troops":[{"id":"troop_knife","name":"刀兵","dynasty":"秦","role":"近战步兵","rarity":"普通","size":1,"hp":85,"atk":26,"range":1,"speed":4,"armor":7,"counterBonus":["archer","crossbow","scholar"],"counterMultiplier":1.2,"skillType":"passive","skillName":"利刃","skill":"克制弓弩","skillDescription":"攻击弓兵、弩兵时伤害+20%","skillCooldown":0,"skillEffect":""},{"id":"troop_spear","name":"枪兵","dynasty":"汉","role":"反骑步兵","rarity":"普通","size":1,"hp":80,"atk":24,"range":1.5,"speed":3.5,"armor":9,"counterBonus":["light_cavalry","heavy_cavalry","iron_buddha","cavalry"],"counterMultiplier":1.35,"skillType":"passive","skillName":"拒马","skill":"克制骑兵","skillDescription":"攻击骑兵时伤害+35%","skillCooldown":0,"skillEffect":""},{"id":"troop_shield","name":"盾兵","dynasty":"汉","role":"前排防御","rarity":"普通","size":1,"hp":125,"atk":15,"range":1,"speed":2.5,"armor":18,"counterBonus":["archer","crossbow"],"counterMultiplier":0.75,"skillType":"passive","skillName":"盾墙","skill":"高护甲","skillDescription":"受到远程攻击时伤害-25%","skillCooldown":0,"skillEffect":""},{"id":"troop_archer","name":"弓兵","dynasty":"汉","role":"远程输出","rarity":"普通","size":1,"hp":55,"atk":30,"range":3,"speed":3,"armor":3,"counterBonus":["shield","large_shield"],"counterMultiplier":1.25,"skillType":"passive","skillName":"齐射","skill":"攻击后排","skillDescription":"攻击盾兵时伤害+25%","skillCooldown":0,"skillEffect":""},{"id":"troop_sword_and_shield","name":"剑盾兵","dynasty":"汉","role":"均衡步兵","rarity":"普通","size":1,"hp":100,"atk":22,"range":1,"speed":3.5,"armor":12,"counterBonus":["archer","crossbow"],"counterMultiplier":1.15,"skillType":"passive","skillName":"攻守兼备","skill":"攻防均衡","skillDescription":"攻防均衡，对远程+15%伤害","skillCooldown":0,"skillEffect":""},{"id":"troop_axeman","name":"斧兵","dynasty":"汉","role":"破甲步兵","rarity":"稀有","size":1,"hp":90,"atk":34,"range":1,"speed":3,"armor":8,"counterBonus":["heavy_armor","shield","iron_buddha"],"counterMultiplier":1.3,"skillType":"passive","skillName":"破甲","skill":"破甲重斧","skillDescription":"攻击重甲单位时伤害+30%","skillCooldown":0,"skillEffect":""},{"id":"troop_crossbow","name":"弩兵","dynasty":"宋","role":"破甲远程","rarity":"稀有","size":1,"hp":65,"atk":40,"range":3,"speed":2.5,"armor":4,"counterBonus":["heavy_armor","shield","iron_buddha"],"counterMultiplier":1.3,"skillType":"active","skillName":"劲弩","skill":"破甲射击","skillDescription":"每3次攻击造成150%破甲伤害","skillCooldown":3,"skillEffect":"armor_pierce"},{"id":"troop_light_cavalry","name":"轻骑","dynasty":"唐","role":"快速突击","rarity":"普通","size":1,"hp":70,"atk":28,"range":1,"speed":7,"armor":5,"counterBonus":["catapult","archer","crossbow","artillery"],"counterMultiplier":1.25,"skillType":"passive","skillName":"奔袭","skill":"快速突击","skillDescription":"攻击远程器械时伤害+25%","skillCooldown":0,"skillEffect":""},{"id":"troop_heavy_cavalry","name":"重骑","dynasty":"唐","role":"冲锋骑兵","rarity":"史诗","size":2,"hp":150,"atk":42,"range":1,"speed":6,"armor":12,"counterBonus":["archer","crossbow","catapult"],"counterMultiplier":1.3,"skillType":"active","skillName":"冲锋","skill":"重骑冲锋","skillDescription":"首次攻击造成150%伤害","skillCooldown":0,"skillEffect":"first_strike"},{"id":"troop_iron_buddha","name":"铁浮屠","dynasty":"金","role":"重装骑兵","rarity":"史诗","size":2,"hp":170,"atk":45,"range":1,"speed":5,"armor":20,"counterBonus":["archer","crossbow"],"counterMultiplier":1.2,"skillType":"passive","skillName":"重甲","skill":"高护甲","skillDescription":"受到普通攻击时伤害-20%","skillCooldown":0,"skillEffect":""},{"id":"troop_catapult","name":"投石车","dynasty":"宋","role":"攻城器械","rarity":"稀有","size":2,"hp":95,"atk":52,"range":4,"speed":2,"armor":7,"counterBonus":["shield","large_shield","dense","formation"],"counterMultiplier":1.35,"skillType":"active","skillName":"飞石","skill":"范围伤害","skillDescription":"攻击密集阵型时伤害+35%，有溅射","skillCooldown":0,"skillEffect":"splash"},{"id":"troop_tiger_cannon","name":"虎蹲炮","dynasty":"明","role":"炮兵","rarity":"稀有","size":2,"hp":100,"atk":60,"range":4,"speed":1.5,"armor":9,"counterBonus":["heavy_armor","large_unit","formation"],"counterMultiplier":1.3,"skillType":"active","skillName":"轰击","skill":"高范围伤害","skillDescription":"攻击大型单位时伤害+30%","skillCooldown":0,"skillEffect":"splash_heavy"},{"id":"troop_three_section_strike","name":"三段击营","dynasty":"明","role":"火器部队","rarity":"稀有","size":1,"hp":85,"atk":48,"range":3,"speed":3,"armor":5,"counterBonus":["heavy_armor","heavy_cavalry","iron_buddha"],"counterMultiplier":1.3,"skillType":"active","skillName":"三段击","skill":"火器轮射","skillDescription":"每3次攻击造成180%伤害","skillCooldown":0,"skillEffect":"volley"},{"id":"troop_mongol_archer","name":"蒙古骑射","dynasty":"元","role":"骑射游击","rarity":"稀有","size":1,"hp":75,"atk":32,"range":2.5,"speed":6,"armor":4,"counterBonus":["archer","crossbow"],"counterMultiplier":1.2,"skillType":"passive","skillName":"游射","skill":"移动射击","skillDescription":"可以在移动中攻击","skillCooldown":0,"skillEffect":"move_and_shoot"},{"id":"troop_divine_cannon","name":"神威炮阵","dynasty":"明","role":"大型炮阵","rarity":"传说","size":3,"hp":210,"atk":80,"range":5,"speed":1,"armor":15,"counterBonus":["large_unit","city_defense","formation"],"counterMultiplier":1.4,"skillType":"active","skillName":"神威炮击","skill":"超远程","skillDescription":"攻击大型军阵时伤害+40%，穿透护甲","skillCooldown":0,"skillEffect":"pierce_heavy"},{"id":"troop_repeating_crossbow","name":"连弩车阵","dynasty":"三国","role":"大型弩阵","rarity":"传说","size":3,"hp":180,"atk":65,"range":4,"speed":1.5,"armor":12,"counterBonus":["light_cavalry","heavy_cavalry","cavalry"],"counterMultiplier":1.3,"skillType":"active","skillName":"连珠弩","skill":"连续射击","skillDescription":"每回合攻击2次，对骑兵+30%","skillCooldown":0,"skillEffect":"double_shot"},{"id":"troop_wu_gang","name":"武刚车阵","dynasty":"汉","role":"移动车阵","rarity":"史诗","size":3,"hp":230,"atk":38,"range":2,"speed":2,"armor":25,"counterBonus":["archer","crossbow"],"counterMultiplier":0.7,"skillType":"passive","skillName":"车城","skill":"移动堡垒","skillDescription":"受到远程攻击时伤害-30%","skillCooldown":0,"skillEffect":""},{"id":"troop_large_shield","name":"大型盾阵","dynasty":"晋","role":"防御军阵","rarity":"史诗","size":3,"hp":270,"atk":24,"range":1,"speed":1,"armor":30,"counterBonus":["archer","catapult","ranged"],"counterMultiplier":0.6,"skillType":"passive","skillName":"铜墙铁壁","skill":"极高防御","skillDescription":"受到远程攻击时伤害-40%","skillCooldown":0,"skillEffect":""},{"id":"troop_elephant","name":"象兵战阵","dynasty":"南中","role":"冲击军阵","rarity":"传说","size":3,"hp":250,"atk":72,"range":1,"speed":3,"armor":18,"counterBonus":["shield","large_shield","infantry"],"counterMultiplier":1.35,"skillType":"active","skillName":"象踏","skill":"高冲击","skillDescription":"攻击防御单位时伤害+35%","skillCooldown":0,"skillEffect":"trample"},{"id":"troop_xiliang_cavalry","name":"西凉铁骑","dynasty":"汉","role":"精锐骑兵","rarity":"史诗","size":2,"hp":155,"atk":48,"range":1,"speed":6.5,"armor":14,"counterBonus":["infantry","archer","crossbow"],"counterMultiplier":1.3,"skillType":"active","skillName":"铁骑冲锋","skill":"精锐冲锋","skillDescription":"首次攻击造成200%伤害，击退敌人","skillCooldown":0,"skillEffect":"charge_heavy"},{"id":"troop_qingzhou_bing","name":"青州兵","dynasty":"三国","role":"精锐步兵","rarity":"稀有","size":1,"hp":105,"atk":28,"range":1,"speed":3.5,"armor":10,"counterBonus":["infantry","shield"],"counterMultiplier":1.25,"skillType":"passive","skillName":"精锐","skill":"百战精锐","skillDescription":"对步兵+25%伤害，死亡时反击","skillCooldown":0,"skillEffect":"death_counter"},{"id":"troop_bai_mayi","name":"白马义从","dynasty":"三国","role":"弓骑兵","rarity":"史诗","size":1,"hp":78,"atk":36,"range":2.5,"speed":6.5,"armor":6,"counterBonus":["infantry","light_cavalry"],"counterMultiplier":1.25,"skillType":"passive","skillName":"白马射术","skill":"骑射精锐","skillDescription":"移动速度快，可边走边射","skillCooldown":0,"skillEffect":"cavalry_archer"},{"id":"troop_trap_camp","name":"陷阵营","dynasty":"三国","role":"重步兵","rarity":"史诗","size":2,"hp":165,"atk":40,"range":1,"speed":3,"armor":16,"counterBonus":["cavalry","infantry"],"counterMultiplier":1.25,"skillType":"active","skillName":"陷阵","skill":"攻无不克","skillDescription":"攻击时无视30%护甲","skillCooldown":0,"skillEffect":"armor_ignore"},{"id":"troop_jin_suwei","name":"禁卫军","dynasty":"宋","role":"精锐近卫","rarity":"稀有","size":1,"hp":115,"atk":32,"range":1,"speed":3,"armor":15,"counterBonus":["cavalry"],"counterMultiplier":1.3,"skillType":"passive","skillName":"守护","skill":"帝王亲卫","skillDescription":"周围友军受到伤害减少15%","skillCooldown":0,"skillEffect":"aura_guard"},{"id":"troop_yuejiajun","name":"岳家军","dynasty":"宋","role":"精锐步兵","rarity":"传说","size":2,"hp":175,"atk":45,"range":1,"speed":4,"armor":14,"counterBonus":["cavalry","heavy_cavalry"],"counterMultiplier":1.4,"skillType":"active","skillName":"钩镰枪","skill":"大破金兀术","skillDescription":"对骑兵+40%伤害，专克重装","skillCooldown":0,"skillEffect":"cavalry_counter"},{"id":"troop_beifu_bing","name":"北府兵","dynasty":"晋","role":"精锐步兵","rarity":"史诗","size":1,"hp":110,"atk":35,"range":1,"speed":4,"armor":11,"counterBonus":["cavalry","infantry"],"counterMultiplier":1.3,"skillType":"passive","skillName":"百战余生","skill":"精锐之师","skillDescription":"生命值低于30%时攻击力提升50%","skillCooldown":0,"skillEffect":"berserk"},{"id":"troop_mingguang_armor","name":"明光铠兵","dynasty":"唐","role":"重装步兵","rarity":"稀有","size":1,"hp":120,"atk":26,"range":1,"speed":2.5,"armor":20,"counterBonus":["archer","crossbow"],"counterMultiplier":0.7,"skillType":"passive","skillName":"明光","skill":"明光重甲","skillDescription":"受到远程伤害-30%，近战减伤15%","skillCooldown":0,"skillEffect":""},{"id":"troop_xuanjia_qi","name":"玄甲军","dynasty":"唐","role":"玄甲重骑","rarity":"传说","size":2,"hp":180,"atk":50,"range":1,"speed":5.5,"armor":22,"counterBonus":["infantry","archer","crossbow"],"counterMultiplier":1.35,"skillType":"active","skillName":"玄甲冲锋","skill":"秦王铁骑","skillDescription":"冲锋造成200%伤害，自身受到伤害减少","skillCooldown":0,"skillEffect":"charge_ultimate"},{"id":"troop_tengjia_bing","name":"藤甲兵","dynasty":"南中","role":"藤甲步兵","rarity":"稀有","size":1,"hp":95,"atk":22,"range":1,"speed":3.5,"armor":16,"counterBonus":["archer","crossbow"],"counterMultiplier":0.5,"skillType":"passive","skillName":"藤甲","skill":"藤甲护体","skillDescription":"远程伤害-50%，但怕火攻","skillCooldown":0,"skillEffect":"vine_armor"},{"id":"troop_fire_attack","name":"火攻队","dynasty":"三国","role":"特殊部队","rarity":"史诗","size":1,"hp":60,"atk":45,"range":2,"speed":3,"armor":3,"counterBonus":["vine_armor","elephant","dense","formation"],"counterMultiplier":1.5,"skillType":"active","skillName":"火攻","skill":"火烧连营","skillDescription":"对密集阵型和藤甲兵+50%伤害，持续燃烧","skillCooldown":0,"skillEffect":"burn"},{"id":"troop_nujun","name":"弩军","dynasty":"秦","role":"大型弩阵","rarity":"史诗","size":2,"hp":120,"atk":55,"range":3.5,"speed":1.5,"armor":6,"counterBonus":["infantry","cavalry"],"counterMultiplier":1.25,"skillType":"active","skillName":"强弩齐射","skill":"秦弩闻名","skillDescription":"射程远，齐射伤害高","skillCooldown":0,"skillEffect":"volley_heavy"},{"id":"troop_wu_ying","name":"武卒","dynasty":"战国·魏","role":"重装步兵","rarity":"史诗","size":1,"hp":130,"atk":32,"range":1,"speed":3,"armor":17,"counterBonus":["infantry","cavalry"],"counterMultiplier":1.2,"skillType":"passive","skillName":"魏武卒","skill":"战国精锐","skillDescription":"攻守兼备，全属性提升","skillCooldown":0,"skillEffect":"elite_stats"},{"id":"troop_hujun","name":"虎贲军","dynasty":"周","role":"禁卫亲军","rarity":"传说","size":2,"hp":190,"atk":55,"range":1,"speed":4,"armor":18,"counterBonus":["all"],"counterMultiplier":1.2,"skillType":"passive","skillName":"虎贲","skill":"天子亲军","skillDescription":"王者之师，全兵种+20%伤害","skillCooldown":0,"skillEffect":"elite_all"},{"id":"troop_liangjun","name":"梁军","dynasty":"南朝","role":"水军步兵","rarity":"稀有","size":1,"hp":88,"atk":28,"range":1,"speed":4,"armor":8,"counterBonus":["naval"],"counterMultiplier":1.25,"skillType":"passive","skillName":"水战","skill":"擅长水战","skillDescription":"在河道附近战斗力+25%","skillCooldown":0,"skillEffect":"river_bonus"},{"id":"troop_yulinjun","name":"羽林军","dynasty":"汉","role":"皇家禁卫","rarity":"稀有","size":1,"hp":108,"atk":30,"range":1,"speed":3.5,"armor":13,"counterBonus":["cavalry","assassin"],"counterMultiplier":1.25,"skillType":"passive","skillName":"羽林","skill":"期门执金","skillDescription":"守护核心，周围友军+10%防御","skillCooldown":0,"skillEffect":"aura_defense"},{"id":"troop_shenjiying","name":"神机营","dynasty":"明","role":"神机炮营","rarity":"史诗","size":2,"hp":140,"atk":70,"range":3.5,"speed":2,"armor":10,"counterBonus":["heavy_armor","cavalry","formation"],"counterMultiplier":1.35,"skillType":"active","skillName":"神机炮","skill":"火器精锐","skillDescription":"高伤害火器，对重甲+35%","skillCooldown":0,"skillEffect":"musket_volley"},{"id":"troop_mengchong","name":"艨艟斗舰","dynasty":"三国","role":"水上军阵","rarity":"传说","size":3,"hp":240,"atk":78,"range":3,"speed":1.5,"armor":20,"counterBonus":["infantry","ranged"],"counterMultiplier":1.3,"skillType":"active","skillName":"斗舰冲撞","skill":"赤壁楼船","skillDescription":"水军利器，攻击时造成范围伤害","skillCooldown":0,"skillEffect":"ship_ram"},{"id":"troop_qin_ruishi","name":"秦锐士","dynasty":"秦","role":"精锐步兵","rarity":"传说","size":2,"hp":170,"atk":52,"range":1,"speed":4,"armor":15,"counterBonus":["infantry","cavalry","all"],"counterMultiplier":1.3,"skillType":"passive","skillName":"锐士","skill":"大秦锐士","skillDescription":"战国最强步兵，全属性+30%","skillCooldown":0,"skillEffect":"elite_ultimate"},{"id":"troop_guanniao_bing","name":"官鸟兵","dynasty":"商","role":"特殊步兵","rarity":"普通","size":1,"hp":75,"atk":25,"range":1,"speed":4.5,"armor":5,"counterBonus":["ranged"],"counterMultiplier":1.15,"skillType":"passive","skillName":"迅捷","skill":"移动迅速","skillDescription":"移动速度快，先攻几率高","skillCooldown":0,"skillEffect":"swift"},{"id":"troop_chu_bing","name":"楚卒","dynasty":"战国·楚","role":"轻装步兵","rarity":"稀有","size":1,"hp":95,"atk":30,"range":1,"speed":4,"armor":7,"counterBonus":["infantry"],"counterMultiplier":1.2,"skillType":"active","skillName":"楚虽三户","skill":"亡秦必楚","skillDescription":"同排友军全部阵亡时攻击翻倍","skillCooldown":0,"skillEffect":"last_stand"},{"id":"troop_dahan_qibing","name":"大汉骑兵","dynasty":"汉","role":"汉家骑兵","rarity":"稀有","size":1,"hp":85,"atk":32,"range":1,"speed":6,"armor":8,"counterBonus":["light_cavalry","infantry"],"counterMultiplier":1.25,"skillType":"active","skillName":"封狼居胥","skill":"汉家雄风","skillDescription":"对敌方轻骑+25%伤害","skillCooldown":0,"skillEffect":"han_cavalry"},{"id":"troop_shang_foot_soldier","name":"商戈兵","dynasty":"商","role":"青铜步兵","rarity":"普通","size":1,"hp":80,"atk":24,"range":1,"speed":3.5,"armor":6,"counterBonus":["infantry"],"counterMultiplier":1.15,"skillType":"passive","skillName":"青铜戈","skill":"古老战技","skillDescription":"对步兵+15%伤害","skillCooldown":0,"skillEffect":""},{"id":"troop_zhou_chariot","name":"周战车","dynasty":"周","role":"战车部队","rarity":"史诗","size":2,"hp":140,"atk":42,"range":1,"speed":5,"armor":14,"counterBonus":["infantry","archer"],"counterMultiplier":1.25,"skillType":"active","skillName":"车驰","skill":"战车冲锋","skillDescription":"首次攻击造成180%伤害","skillCooldown":0,"skillEffect":"chariot_charge"},{"id":"troop_wuyue_swordsman","name":"吴越剑士","dynasty":"春秋·越","role":"剑士部队","rarity":"稀有","size":1,"hp":90,"atk":34,"range":1,"speed":4.5,"armor":6,"counterBonus":["infantry","scholar"],"counterMultiplier":1.25,"skillType":"active","skillName":"越女剑","skill":"精妙剑术","skillDescription":"有30%几率造成双倍伤害","skillCooldown":0,"skillEffect":"critical_strike"},{"id":"troop_qin_archer","name":"秦弓手","dynasty":"秦","role":"秦代弓兵","rarity":"稀有","size":1,"hp":60,"atk":35,"range":3.5,"speed":3,"armor":4,"counterBonus":["infantry","shield"],"counterMultiplier":1.2,"skillType":"passive","skillName":"强弓","skill":"射程优势","skillDescription":"射程比普通弓兵更远","skillCooldown":0,"skillEffect":"long_range"},{"id":"troop_han_melee","name":"汉材官","dynasty":"汉","role":"精锐步兵","rarity":"稀有","size":1,"hp":100,"atk":28,"range":1,"speed":3.5,"armor":11,"counterBonus":["infantry"],"counterMultiplier":1.2,"skillType":"passive","skillName":"材官","skill":"汉家精锐","skillDescription":"攻防均衡的汉代精锐步兵","skillCooldown":0,"skillEffect":"balanced"},{"id":"troop_sui_cavalry","name":"隋骁骑","dynasty":"隋","role":"精锐骑兵","rarity":"史诗","size":2,"hp":150,"atk":46,"range":1,"speed":6,"armor":13,"counterBonus":["infantry","archer","crossbow"],"counterMultiplier":1.25,"skillType":"active","skillName":"骁骑突击","skill":"隋代精锐","skillDescription":"冲锋造成180%伤害，击退敌人","skillCooldown":0,"skillEffect":"xiao_charge"},{"id":"troop_song_water_army","name":"宋水军","dynasty":"宋","role":"水上部队","rarity":"史诗","size":2,"hp":130,"atk":40,"range":2.5,"speed":2.5,"armor":10,"counterBonus":["naval","infantry"],"counterMultiplier":1.3,"skillType":"passive","skillName":"水战","skill":"擅长水战","skillDescription":"在河道附近战斗力+30%","skillCooldown":0,"skillEffect":"river_master"},{"id":"troop_yuan_heavy_cavalry","name":"元重骑","dynasty":"元","role":"蒙古重骑","rarity":"史诗","size":2,"hp":160,"atk":48,"range":1,"speed":5.5,"armor":16,"counterBonus":["infantry","archer","crossbow"],"counterMultiplier":1.3,"skillType":"active","skillName":"蒙古铁骑","skill":"横扫欧亚","skillDescription":"冲锋造成200%伤害，自身减伤","skillCooldown":0,"skillEffect":"mongol_charge"},{"id":"troop_ji_ji_zhi_shi","name":"技击之士","dynasty":"战国·齐","role":"精锐剑士","rarity":"稀有","size":1,"hp":90,"atk":36,"range":1,"speed":4.5,"armor":7,"counterBonus":["infantry","scholar"],"counterMultiplier":1.25,"skillType":"active","skillName":"技击","skill":"齐国勇力","skillDescription":"有25%几率造成1.8倍伤害","skillCooldown":0,"skillEffect":"critical_strike"},{"id":"troop_modao_dui","name":"陌刀队","dynasty":"唐","role":"陌刀步兵","rarity":"传说","size":2,"hp":160,"atk":55,"range":1,"speed":3,"armor":14,"counterBonus":["cavalry","heavy_cavalry"],"counterMultiplier":1.45,"skillType":"active","skillName":"陌刀","skill":"人马俱碎","skillDescription":"对骑兵+45%伤害，专克重骑","skillCooldown":0,"skillEffect":"cavalry_slayer"},{"id":"troop_wudang_feijun","name":"无当飞军","dynasty":"三国","role":"南中精锐","rarity":"史诗","size":1,"hp":95,"atk":38,"range":2,"speed":5,"armor":8,"counterBonus":["infantry","cavalry"],"counterMultiplier":1.3,"skillType":"active","skillName":"飞军","skill":"南中精锐","skillDescription":"高机动，对步兵骑兵均+30%","skillCooldown":0,"skillEffect":"versatile"},{"id":"troop_ming_assassin","name":"锦衣卫","dynasty":"明","role":"特种侦察","rarity":"传说","size":1,"hp":85,"atk":42,"range":1,"speed":5,"armor":6,"counterBonus":["all"],"counterMultiplier":1.25,"skillType":"active","skillName":"绣春刀","skill":"皇权特许","skillDescription":"对所有兵种+25%伤害，高暴击","skillCooldown":0,"skillEffect":"assassin_strike"}]};
+
+const RARITY_COLORS = {
+  "普通": "#aaaaaa",
+  "稀有": "#4488ff",
+  "史诗": "#aa44ff",
+  "传说": "#ffaa00"
+};
+
+const ROLE_ICONS = {
+  "近战步兵": "刀", "反骑步兵": "枪", "前排防御": "盾", "远程输出": "弓",
+  "均衡步兵": "剑", "破甲步兵": "斧", "破甲远程": "弩", "快速突击": "骑",
+  "冲锋骑兵": "骑", "重装骑兵": "骑", "攻城器械": "石", "炮兵": "炮",
+  "火器部队": "火", "骑射游击": "射", "大型炮阵": "炮", "大型弩阵": "弩",
+  "移动车阵": "车", "防御军阵": "阵", "冲击军阵": "象", "精锐骑兵": "骑",
+  "精锐步兵": "精", "弓骑兵": "射", "重步兵": "重", "精锐近卫": "卫",
+  "皇家禁卫": "卫", "神机炮营": "炮", "水上军阵": "船", "特殊步兵": "特",
+  "轻装步兵": "轻", "汉家骑兵": "骑", "青铜步兵": "铜", "战车部队": "车",
+  "剑士部队": "剑", "秦代弓兵": "弓", "水上部队": "水", "蒙古重骑": "骑",
+  "陌刀步兵": "刀", "南中精锐": "飞", "特种侦察": "谍"
+};
+
+const FORMATIONS = [
+  { id: " Crane", name: "鹤翼阵", desc: "两翼展开，侧翼攻击+15%", bonus: { sideAtk: 1.15 } },
+  { id: "fish", name: "鱼鳞阵", desc: "前排防御+20%", bonus: { frontArmor: 1.2 } },
+  { id: "goose", name: "雁行阵", desc: "远程射程+1", bonus: { rangeAdd: 1 } },
+  { id: "square", name: "方圆阵", desc: "全属性+10%", bonus: { allStats: 1.1 } },
+  { id: "line", name: "长蛇阵", desc: "速度+20%", bonus: { speedMul: 1.2 } },
+  { id: "heaven", name: "天地阵", desc: "攻击+15%", bonus: { atkMul: 1.15 } }
+];
+
+const ACHIEVEMENTS = [
+  { id: "first_win", name: "初战告捷", desc: "赢得第一场战斗", reward: 100 },
+  { id: "win_10", name: "十战十胜", desc: "累计赢得10场战斗", reward: 300 },
+  { id: "win_50", name: "常胜将军", desc: "累计赢得50场战斗", reward: 1000 },
+  { id: "level_10", name: "初露锋芒", desc: "通过第10关", reward: 200 },
+  { id: "level_30", name: "威震四方", desc: "通过第30关", reward: 500 },
+  { id: "gacha_10", name: "求贤若渴", desc: "累计抽卡10次", reward: 200 },
+  { id: "gacha_50", name: "伯乐相马", desc: "累计抽卡50次", reward: 800 },
+  { id: "legendary", name: "天降神兵", desc: "获得传说兵种", reward: 500 },
+  { id: "upgrade_5", name: "励精图治", desc: "升星5次兵种", reward: 300 },
+  { id: "rich", name: "富甲一方", desc: "持有金币超过5000", reward: 400 }
+];
+
+// ==================== AUDIO ENGINE ====================
+class AudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.enabled = true;
+    this.init();
+  }
+  init() {
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  playTone(freq, duration, type='square', vol=0.1) {
+    if (!this.enabled || !this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  }
+  click() { this.playTone(800, 0.08, 'sine', 0.08); }
+  hover() { this.playTone(600, 0.05, 'sine', 0.04); }
+  attack() { this.playTone(220, 0.15, 'sawtooth', 0.08); setTimeout(() => this.playTone(180, 0.2, 'sawtooth', 0.06), 80); }
+  hit() { this.playTone(150, 0.1, 'square', 0.1); }
+  win() {
+    [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.playTone(f,0.3,'sine',0.12),i*120));
+  }
+  lose() {
+    [400,350,300,250].forEach((f,i)=>setTimeout(()=>this.playTone(f,0.3,'sawtooth',0.1),i*150));
+  }
+  coin() { this.playTone(1200, 0.1, 'sine', 0.08); setTimeout(()=>this.playTone(1600, 0.15, 'sine', 0.06), 60); }
+  gacha() {
+    for(let i=0;i<8;i++) setTimeout(()=>this.playTone(400+i*100,0.08,'sine',0.06),i*60);
+  }
+}
+
+// ==================== GAME STATE ====================
+class GameState {
+  constructor() {
+    this.coins = 500;
+    this.jade = 10;
+    this.tokens = 0;
+    this.level = 1;
+    this.maxLevel = 1;
+    this.wins = 0;
+    this.totalBattles = 0;
+    this.gachaCount = 0;
+    this.upgradeCount = 0;
+    this.achievements = {};
+    this.inventory = [];
+    this.formation = FORMATIONS[0];
+    this.settings = { sound: true, music: true, difficulty: 1 };
+    this.load();
+    this.initStarterTroops();
+  }
+  initStarterTroops() {
+    if (this.inventory.length === 0) {
+      this.addTroop("troop_knife");
+      this.addTroop("troop_spear");
+      this.addTroop("troop_archer");
+      this.addTroop("troop_shield");
+      this.addTroop("troop_light_cavalry");
+    }
+  }
+  addTroop(troopId) {
+    const base = TROOPS_DATA.troops.find(t => t.id === troopId);
+    if (!base) return null;
+    const existing = this.inventory.find(i => i.id === troopId);
+    if (existing) {
+      existing.count = (existing.count || 1) + 1;
+      return existing;
+    }
+    const troop = { ...base, star: 1, count: 1, uid: Date.now() + Math.random() };
+    this.inventory.push(troop);
+    return troop;
+  }
+  getTroop(uid) { return this.inventory.find(i => i.uid === uid); }
+  canUpgrade(troop) {
+    const need = troop.star * 3;
+    return (troop.count || 1) >= need;
+  }
+  upgrade(troop) {
+    const need = troop.star * 3;
+    if ((troop.count || 1) < need) return false;
+    troop.count -= need;
+    troop.star++;
+    troop.hp = Math.floor(troop.hp * 1.15);
+    troop.atk = Math.floor(troop.atk * 1.15);
+    troop.armor = Math.floor(troop.armor * 1.1);
+    this.upgradeCount++;
+    this.checkAchievement("upgrade_5", this.upgradeCount >= 5);
+    return true;
+  }
+  checkAchievement(id, condition) {
+    if (condition && !this.achievements[id]) {
+      this.achievements[id] = true;
+      const ach = ACHIEVEMENTS.find(a => a.id === id);
+      if (ach) {
+        this.coins += ach.reward;
+        showToast(`成就解锁: ${ach.name} +${ach.reward}金币`);
+      }
+    }
+  }
+  save() {
+    const data = JSON.stringify({
+      coins: this.coins, jade: this.jade, tokens: this.tokens,
+      level: this.level, maxLevel: this.maxLevel, wins: this.wins,
+      totalBattles: this.totalBattles, gachaCount: this.gachaCount,
+      upgradeCount: this.upgradeCount, achievements: this.achievements,
+      inventory: this.inventory.map(i => ({ id: i.id, star: i.star, count: i.count })),
+      formation: this.formation.id, settings: this.settings
+    });
+    localStorage.setItem("liezhenqianqiu_save", data);
+  }
+  load() {
+    const raw = localStorage.getItem("liezhenqianqiu_save");
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      this.coins = data.coins ?? 500;
+      this.jade = data.jade ?? 10;
+      this.tokens = data.tokens ?? 0;
+      this.level = data.level ?? 1;
+      this.maxLevel = data.maxLevel ?? 1;
+      this.wins = data.wins ?? 0;
+      this.totalBattles = data.totalBattles ?? 0;
+      this.gachaCount = data.gachaCount ?? 0;
+      this.upgradeCount = data.upgradeCount ?? 0;
+      this.achievements = data.achievements ?? {};
+      this.settings = data.settings ?? { sound: true, music: true, difficulty: 1 };
+      if (data.inventory) {
+        this.inventory = data.inventory.map(item => {
+          const base = TROOPS_DATA.troops.find(t => t.id === item.id);
+          if (!base) return null;
+          const t = { ...base, star: item.star ?? 1, count: item.count ?? 1, uid: Date.now() + Math.random() };
+          t.hp = Math.floor(base.hp * Math.pow(1.15, t.star - 1));
+          t.atk = Math.floor(base.atk * Math.pow(1.15, t.star - 1));
+          t.armor = Math.floor(base.armor * Math.pow(1.1, t.star - 1));
+          return t;
+        }).filter(Boolean);
+      }
+      if (data.formation) {
+        const f = FORMATIONS.find(x => x.id === data.formation);
+        if (f) this.formation = f;
+      }
+    } catch(e) {}
+  }
+}
+
+// ==================== CANVAS RENDERER ====================
+class Renderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  }
+  resize() {
+    const maxW = window.innerWidth - 20;
+    const maxH = window.innerHeight - 20;
+    const aspect = 7 / 11;
+    let w = maxW, h = maxW / aspect;
+    if (h > maxH) { h = maxH; w = h * aspect; }
+    this.canvas.width = Math.floor(w);
+    this.canvas.height = Math.floor(h);
+    this.cellW = this.canvas.width / 7;
+    this.cellH = this.canvas.height / 11;
+    this.dpr = window.devicePixelRatio || 1;
+  }
+  clear() {
+    this.ctx.fillStyle = '#1a1008';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+  drawGrid() {
+    const ctx = this.ctx;
+    ctx.strokeStyle = 'rgba(200, 160, 50, 0.15)';
+    ctx.lineWidth = 1;
+    for (let c = 0; c <= 7; c++) {
+      ctx.beginPath();
+      ctx.moveTo(c * this.cellW, 0);
+      ctx.lineTo(c * this.cellW, this.canvas.height);
+      ctx.stroke();
+    }
+    for (let r = 0; r <= 11; r++) {
+      ctx.beginPath();
+      ctx.moveTo(0, r * this.cellH);
+      ctx.lineTo(this.canvas.width, r * this.cellH);
+      ctx.stroke();
+    }
+  }
+  drawRiver() {
+    const ctx = this.ctx;
+    const y = 5 * this.cellH;
+    const h = this.cellH;
+    ctx.fillStyle = 'rgba(40, 80, 120, 0.4)';
+    ctx.fillRect(0, y, this.canvas.width, h);
+    ctx.fillStyle = 'rgba(60, 120, 180, 0.3)';
+    for (let i = 0; i < 7; i++) {
+      const ox = (Date.now() / 20 + i * 30) % this.cellW;
+      ctx.fillRect(i * this.cellW + ox - 10, y + h * 0.3, 20, h * 0.4);
+    }
+    ctx.strokeStyle = 'rgba(100, 160, 200, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(this.canvas.width, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, y + h);
+    ctx.lineTo(this.canvas.width, y + h);
+    ctx.stroke();
+  }
+  drawFerries() {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(139, 90, 43, 0.6)';
+    ctx.fillRect(0, 5 * this.cellH, this.cellW * 0.4, this.cellH);
+    ctx.fillRect(this.canvas.width - this.cellW * 0.4, 5 * this.cellH, this.cellW * 0.4, this.cellH);
+    ctx.fillStyle = '#c8a030';
+    ctx.font = `${Math.max(12, this.cellH * 0.3)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('渡', this.cellW * 0.2, 5.6 * this.cellH);
+    ctx.fillText('渡', this.canvas.width - this.cellW * 0.2, 5.6 * this.cellH);
+  }
+  drawZones() {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(200, 50, 50, 0.06)';
+    ctx.fillRect(0, 0, this.canvas.width, 5 * this.cellH);
+    ctx.fillStyle = 'rgba(50, 100, 200, 0.06)';
+    ctx.fillRect(0, 6 * this.cellH, this.canvas.width, 5 * this.cellH);
+    ctx.strokeStyle = 'rgba(200, 80, 80, 0.3)';
+    ctx.strokeRect(2, 2, this.canvas.width - 4, 5 * this.cellH - 4);
+    ctx.strokeStyle = 'rgba(80, 120, 200, 0.3)';
+    ctx.strokeRect(2, 6 * this.cellH + 2, this.canvas.width - 4, 5 * this.cellH - 4);
+  }
+  drawTroop(troop, col, row, isEnemy, alpha=1) {
+    const ctx = this.ctx;
+    const x = col * this.cellW;
+    const y = row * this.cellH;
+    const w = troop.size === 3 ? this.cellW * 3 : troop.size === 2 ? this.cellW * 2 : this.cellW;
+    const h = this.cellH;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+
+    ctx.globalAlpha = alpha;
+    const color = isEnemy ? '#c85050' : '#5080c8';
+    const darkColor = isEnemy ? '#802020' : '#204080';
+
+    // Background
+    ctx.fillStyle = darkColor;
+    ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+
+    // Rarity glow
+    const rColor = RARITY_COLORS[troop.rarity] || '#aaa';
+    ctx.shadowColor = rColor;
+    ctx.shadowBlur = 8;
+
+    // Icon
+    ctx.fillStyle = rColor;
+    ctx.font = `bold ${Math.max(14, h * 0.35)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const icon = ROLE_ICONS[troop.role] || '兵';
+    ctx.fillText(icon, cx, cy - h * 0.1);
+
+    ctx.shadowBlur = 0;
+
+    // Name
+    ctx.fillStyle = '#ffd700';
+    ctx.font = `${Math.max(10, h * 0.18)}px sans-serif`;
+    ctx.fillText(troop.name, cx, cy + h * 0.28);
+
+    // HP bar
+    const hpRatio = troop.currentHp / troop.maxHp;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(x + 4, y + 4, w - 8, 5);
+    ctx.fillStyle = hpRatio > 0.5 ? '#44cc44' : hpRatio > 0.25 ? '#ccaa22' : '#cc3333';
+    ctx.fillRect(x + 4, y + 4, (w - 8) * hpRatio, 5);
+
+    // Star
+    if (troop.star > 1) {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = `${Math.max(10, h * 0.18)}px sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText('★'.repeat(troop.star), x + 6, y + h * 0.55);
+    }
+
+    ctx.globalAlpha = 1;
+  }
+  drawDamageNumber(x, y, damage, isCrit) {
+    const ctx = this.ctx;
+    ctx.fillStyle = isCrit ? '#ff4444' : '#ffaa00';
+    ctx.font = `bold ${isCrit ? 22 : 16}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.floor(damage), x, y);
+  }
+  drawAttackLine(x1, y1, x2, y2) {
+    const ctx = this.ctx;
+    ctx.strokeStyle = 'rgba(255, 200, 50, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  drawPlacementMarker(col, row, valid) {
+    const ctx = this.ctx;
+    const x = col * this.cellW;
+    const y = row * this.cellH;
+    ctx.fillStyle = valid ? 'rgba(50, 200, 50, 0.3)' : 'rgba(200, 50, 50, 0.3)';
+    ctx.fillRect(x, y, this.cellW, this.cellH);
+    ctx.strokeStyle = valid ? '#44cc44' : '#cc4444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, this.cellW, this.cellH);
+  }
+}
+
+// ==================== BATTLE SYSTEM ====================
+class BattleSystem {
+  constructor(game, renderer) {
+    this.game = game;
+    this.renderer = renderer;
+    this.state = 'deploy'; // deploy, battle, result
+    this.playerUnits = [];
+    this.enemyUnits = [];
+    this.playerHp = 3;
+    this.enemyHp = 3;
+    this.turn = 0;
+    this.animations = [];
+    this.selectedTroop = null;
+    this.placementRotation = 0; // 0=horizontal, 1=vertical
+    this.battleSpeed = 1;
+    this.selectedFormation = game.state.formation;
+    this.roundDeployCount = 0;
+    this.deadPlayerUnits = [];
+  }
+  start() {
+    this.state = 'deploy';
+    this.playerHp = 3;
+    this.enemyHp = 3;
+    this.playerUnits = [];
+    this.enemyUnits = [];
+    this.deadPlayerUnits = [];
+    this.turn = 0;
+    this.deployEnemy();
+    showToast('布阵阶段：拖动兵种到下方蓝色区域');
+  }
+  deployEnemy() {
+    const level = this.game.state.level;
+    const count = Math.min(5 + Math.floor((level - 1) / 5), 10);
+    const difficulty = this.game.state.settings.difficulty || 1;
+    const diffMul = (1 + (level - 1) * 0.15) * difficulty;
+    // Difficulty-based rarity filter
+    let allowedRarities = ['普通'];
+    if (level >= 3) allowedRarities.push('稀有');
+    if (level >= 8) allowedRarities.push('史诗');
+    if (level >= 15) allowedRarities.push('传说');
+    let pool = TROOPS_DATA.troops.filter(t => allowedRarities.includes(t.rarity));
+    if (pool.length === 0) pool = TROOPS_DATA.troops.filter(t => t.rarity === '普通');
+    for (let i = 0; i < count; i++) {
+      const base = pool[Math.floor(Math.random() * pool.length)];
+      const unit = {
+        ...base,
+        uid: 'enemy_' + i,
+        maxHp: Math.floor(base.hp * diffMul),
+        currentHp: Math.floor(base.hp * diffMul),
+        atk: Math.floor(base.atk * diffMul),
+        armor: Math.floor(base.armor * diffMul),
+        isEnemy: true,
+        col: -1, row: -1,
+        attackTimer: 0,
+        skillTimer: 0,
+        hasFirstStrike: true
+      };
+      // Random placement in enemy zone (rows 0-4)
+      let placed = false;
+      let attempts = 0;
+      while (!placed && attempts < 50) {
+        const c = Math.floor(Math.random() * (8 - unit.size));
+        const r = Math.floor(Math.random() * 5);
+        if (this.canPlace(unit, c, r, true)) {
+          unit.col = c; unit.row = r;
+          this.enemyUnits.push(unit);
+          placed = true;
+        }
+        attempts++;
+      }
+    }
+  }
+  canPlace(unit, col, row, isEnemy) {
+    const size = unit.size || 1;
+    if (col < 0 || col + size > 7) return false;
+    if (isEnemy) {
+      if (row < 0 || row >= 5) return false;
+    } else {
+      if (row < 6 || row >= 11) return false;
+    }
+    const units = isEnemy ? this.enemyUnits : this.playerUnits;
+    for (let i = 0; i < size; i++) {
+      if (units.some(u => u !== unit && this.occupies(u, col + i, row))) return false;
+    }
+    return true;
+  }
+  occupies(unit, col, row) {
+    if (unit.col < 0) return false;
+    const size = unit.size || 1;
+    if (row !== unit.row) return false;
+    return col >= unit.col && col < unit.col + size;
+  }
+  placePlayerUnit(troopUid, col, row) {
+    const troop = this.game.state.getTroop(troopUid);
+    if (!troop) return false;
+    const aliveCount = this.playerUnits.filter(u => u.troopUid === troopUid && u.currentHp > 0).length;
+    if (aliveCount >= (troop.count || 1)) return false;
+
+    const unit = {
+      ...troop,
+      troopUid: troopUid,
+      uid: 'player_' + Date.now() + Math.random(),
+      maxHp: troop.hp,
+      currentHp: troop.hp,
+      isEnemy: false,
+      col: col, row: row,
+      attackTimer: 0,
+      skillTimer: 0,
+      hasFirstStrike: true
+    };
+    if (!this.canPlace(unit, col, row, false)) return false;
+    this.playerUnits.push(unit);
+    return true;
+  }
+  rotatePlacement() {
+    this.placementRotation = 1 - this.placementRotation;
+  }
+  startBattle() {
+    if (this.playerUnits.length === 0) {
+      showToast('请先放置至少一个兵种');
+      return;
+    }
+    this.state = 'battle';
+    this.turn = 0;
+    this.battleTime = 0;
+    this.maxBattleTime = 45; // seconds before forced round end
+    showToast('战斗开始！');
+    audio.attack();
+  }
+  update(dt) {
+    if (this.state !== 'battle') return;
+    this.battleTime += dt;
+    const allUnits = [...this.playerUnits, ...this.enemyUnits];
+    for (const u of allUnits) {
+      if (u.currentHp <= 0) continue;
+      u.attackTimer += dt * u.speed * this.battleSpeed;
+      if (u.attackTimer >= 10) {
+        u.attackTimer = 0;
+        this.unitAttack(u);
+      }
+    }
+    // Check round end
+    const playerAlive = this.playerUnits.some(u => u.currentHp > 0);
+    const enemyAlive = this.enemyUnits.some(u => u.currentHp > 0);
+    const timeout = this.battleTime >= this.maxBattleTime;
+    if (!playerAlive || !enemyAlive || timeout) {
+      if (timeout) {
+        // Timeout: compare total HP remaining
+        const playerTotalHp = this.playerUnits.reduce((s, u) => s + Math.max(0, u.currentHp), 0);
+        const enemyTotalHp = this.enemyUnits.reduce((s, u) => s + Math.max(0, u.currentHp), 0);
+        if (playerTotalHp <= enemyTotalHp) this.playerHp--;
+        if (enemyTotalHp <= playerTotalHp) this.enemyHp--;
+        showToast('回合超时！按剩余血量判定');
+      } else {
+        if (!playerAlive) this.playerHp--;
+        if (!enemyAlive) this.enemyHp--;
+      }
+      if (this.playerHp <= 0) {
+        this.endBattle(false);
+      } else if (this.enemyHp <= 0) {
+        this.endBattle(true);
+      } else {
+        this.nextRound();
+      }
+    }
+  }
+  unitAttack(attacker) {
+    const targets = attacker.isEnemy ? this.playerUnits : this.enemyUnits;
+    const alive = targets.filter(t => t.currentHp > 0);
+    if (alive.length === 0) return;
+
+    // Find target in range
+    let target = null;
+    const range = attacker.range;
+    const inRange = alive.filter(t => this.distance(attacker, t) <= range);
+    if (inRange.length > 0) {
+      target = inRange[Math.floor(Math.random() * inRange.length)];
+    } else {
+      // Move toward enemy
+      target = alive.reduce((best, t) => {
+        const d = this.distance(attacker, t);
+        return d < best.dist ? { unit: t, dist: d } : best;
+      }, { unit: alive[0], dist: Infinity }).unit;
+      // Smart movement toward target
+      let newRow = attacker.row;
+      let newCol = attacker.col;
+      if (target.row < attacker.row) newRow--;
+      else if (target.row > attacker.row) newRow++;
+
+      // If blocked by river, try ferry crossing
+      if (newRow === 5 && attacker.col !== 0 && attacker.col !== 6) {
+        newCol = attacker.col < 3 ? 0 : 6;
+        newRow = attacker.row;
+      }
+      // Try crossing river via ferry
+      if (attacker.row === 5 && (attacker.col === 0 || attacker.col === 6)) {
+        newRow = target.row < attacker.row ? 4 : 6;
+        newCol = attacker.col;
+      }
+      // If same row, move laterally toward target
+      if (newRow === attacker.row) {
+        if (target.col < attacker.col) newCol--;
+        else if (target.col > attacker.col) newCol++;
+      }
+      // Boundary check
+      if (newRow < 0 || newRow >= 11) newRow = attacker.row;
+      if (newCol < 0 || newCol + (attacker.size || 1) > 7) newCol = attacker.col;
+
+      if (this.canMoveTo(attacker, newCol, newRow)) {
+        attacker.col = newCol;
+        attacker.row = newRow;
+      } else if (newCol !== attacker.col) {
+        // Try original row with lateral move
+        if (this.canMoveTo(attacker, newCol, attacker.row)) {
+          attacker.col = newCol;
+        }
+      } else if (newRow !== attacker.row) {
+        // Try original col with vertical move
+        if (this.canMoveTo(attacker, attacker.col, newRow)) {
+          attacker.row = newRow;
+        }
+      }
+      if (this.distance(attacker, target) > range) return;
+    }
+
+    if (!target) return;
+
+    // Calculate damage
+    let dmg = attacker.atk;
+    let isCrit = false;
+    let multiplier = 1;
+
+    // Counter bonus
+    const tRoles = target.role ? [target.role] : [];
+    const tId = target.id || '';
+    if (attacker.counterBonus) {
+      for (const bonus of attacker.counterBonus) {
+        if (tId.includes(bonus) || tRoles.some(r => r.includes(bonus))) {
+          multiplier = attacker.counterMultiplier;
+          break;
+        }
+      }
+    }
+
+    // Skill effects
+    if (attacker.skillEffect === 'first_strike' && attacker.hasFirstStrike) {
+      multiplier *= 1.5;
+      attacker.hasFirstStrike = false;
+      isCrit = true;
+    }
+    if (attacker.skillEffect === 'charge_heavy' && attacker.hasFirstStrike) {
+      multiplier *= 2.0;
+      attacker.hasFirstStrike = false;
+      isCrit = true;
+    }
+    if (attacker.skillEffect === 'charge_ultimate' && attacker.hasFirstStrike) {
+      multiplier *= 2.0;
+      attacker.hasFirstStrike = false;
+      isCrit = true;
+    }
+    if (attacker.skillEffect === 'volley' || attacker.skillEffect === 'volley_heavy') {
+      attacker.skillTimer++;
+      if (attacker.skillTimer >= 3) {
+        multiplier *= attacker.skillEffect === 'volley' ? 1.8 : 1.5;
+        attacker.skillTimer = 0;
+        isCrit = true;
+      }
+    }
+    if (attacker.skillEffect === 'double_shot') {
+      // Handled by extra attack speed
+    }
+    if (attacker.skillEffect === 'critical_strike' && Math.random() < 0.3) {
+      multiplier *= 2.0;
+      isCrit = true;
+    }
+    if (attacker.skillEffect === 'berserk' && attacker.currentHp / attacker.maxHp < 0.3) {
+      multiplier *= 1.5;
+    }
+
+    // Armor reduction
+    let armor = target.armor;
+    if (attacker.skillEffect === 'armor_ignore') armor *= 0.7;
+    if (attacker.skillEffect === 'pierce_heavy') armor *= 0.5;
+    const reduction = armor / (armor + 50);
+    dmg = dmg * multiplier * (1 - reduction);
+
+    // Ranged damage reduction for shield units
+    if (attacker.range > 1 && target.counterMultiplier < 1) {
+      dmg *= target.counterMultiplier;
+    }
+
+    // Apply damage
+    dmg = Math.max(1, Math.floor(dmg));
+    target.currentHp -= dmg;
+
+    // Animation
+    this.animations.push({
+      type: 'damage',
+      x: (target.col + (target.size || 1) / 2) * this.renderer.cellW,
+      y: target.row * this.renderer.cellH,
+      value: dmg,
+      isCrit,
+      time: 1.0
+    });
+    this.animations.push({
+      type: 'line',
+      x1: (attacker.col + (attacker.size || 1) / 2) * this.renderer.cellW,
+      y1: attacker.row * this.renderer.cellH + this.renderer.cellH / 2,
+      x2: (target.col + (target.size || 1) / 2) * this.renderer.cellW,
+      y2: target.row * this.renderer.cellH + this.renderer.cellH / 2,
+      time: 0.3
+    });
+
+    audio.hit();
+
+    if (target.currentHp <= 0) {
+      target.currentHp = 0;
+      this.animations.push({
+        type: 'death', x: target.col * this.renderer.cellW,
+        y: target.row * this.renderer.cellH,
+        w: (target.size || 1) * this.renderer.cellW,
+        h: this.renderer.cellH,
+        time: 0.5
+      });
+    }
+  }
+  distance(a, b) {
+    return Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
+  }
+  canMoveTo(unit, col, row) {
+    // Ferry crossing: allow row 5 only at ferry columns (0 and 6)
+    const isFerry = (col === 0 || col === 6) && row === 5;
+    if (row === 5 && !isFerry) return false;
+    if (col < 0 || col + (unit.size || 1) > 7) return false;
+    if (row < 0 || row >= 11) return false;
+    const units = unit.isEnemy ? this.enemyUnits : this.playerUnits;
+    for (let i = 0; i < (unit.size || 1); i++) {
+      if (units.some(u => u !== unit && u.currentHp > 0 && this.occupies(u, col + i, row))) return false;
+    }
+    return true;
+  }
+  nextRound() {
+    this.state = 'deploy';
+    this.turn++;
+    // Keep alive units, remove dead
+    this.playerUnits = this.playerUnits.filter(u => u.currentHp > 0);
+    this.enemyUnits = this.enemyUnits.filter(u => u.currentHp > 0);
+    // Redeploy enemy
+    this.enemyUnits.forEach(u => { u.col = -1; u.row = -1; });
+    this.enemyUnits = [];
+    this.deployEnemy();
+    showToast(`第${this.turn + 1}轮布阵`);
+  }
+  endBattle(victory) {
+    this.state = 'result';
+    const state = this.game.state;
+    state.totalBattles++;
+    if (victory) {
+      state.wins++;
+      const baseReward = 50 + (state.level - 1) * 10;
+      state.coins += baseReward;
+      showToast(`胜利！获得 ${baseReward} 金币`);
+      audio.win();
+      state.level++;
+      if (state.level > state.maxLevel) state.maxLevel = state.level;
+      state.checkAchievement('first_win', state.wins >= 1);
+      state.checkAchievement('win_10', state.wins >= 10);
+      state.checkAchievement('win_50', state.wins >= 50);
+      state.checkAchievement('level_10', state.maxLevel >= 10);
+      state.checkAchievement('level_30', state.maxLevel >= 30);
+      state.checkAchievement('rich', state.coins >= 5000);
+    } else {
+      const reward = 10 + state.level * 2;
+      state.coins += reward;
+      showToast(`失败... 获得 ${reward} 金币安慰奖`);
+      audio.lose();
+    }
+    state.save();
+    this.game.showBattleResult(victory);
+  }
+  render() {
+    const r = this.renderer;
+    r.clear();
+    r.drawZones();
+    r.drawGrid();
+    r.drawRiver();
+    r.drawFerries();
+
+    // Units
+    for (const u of this.enemyUnits) {
+      if (u.currentHp > 0) r.drawTroop(u, u.col, u.row, true);
+    }
+    for (const u of this.playerUnits) {
+      if (u.currentHp > 0) r.drawTroop(u, u.col, u.row, false);
+    }
+
+    // Animations
+    for (let i = this.animations.length - 1; i >= 0; i--) {
+      const a = this.animations[i];
+      a.time -= 0.016;
+      if (a.time <= 0) { this.animations.splice(i, 1); continue; }
+      if (a.type === 'damage') {
+        r.ctx.globalAlpha = Math.min(1, a.time * 2);
+        r.drawDamageNumber(a.x, a.y - (1 - a.time) * 40, a.value, a.isCrit);
+        r.ctx.globalAlpha = 1;
+      } else if (a.type === 'line') {
+        r.ctx.globalAlpha = a.time / 0.3;
+        r.drawAttackLine(a.x1, a.y1, a.x2, a.y2);
+        r.ctx.globalAlpha = 1;
+      } else if (a.type === 'death') {
+        r.ctx.globalAlpha = a.time / 0.5;
+        r.ctx.fillStyle = 'rgba(255,100,50,0.5)';
+        r.ctx.fillRect(a.x, a.y, a.w, a.h);
+        r.ctx.globalAlpha = 1;
+      }
+    }
+  }
+}
+
+// ==================== MAIN GAME ====================
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('gameCanvas');
+    this.renderer = new Renderer(this.canvas);
+    this.state = new GameState();
+    this.audio = audio;
+    this.screen = 'menu';
+    this.battle = null;
+    this.lastTime = 0;
+    this.mouse = { x: 0, y: 0, down: false };
+    this.dragTroop = null;
+    this.hoveredCell = null;
+
+    this.setupInput();
+    this.loop = this.loop.bind(this);
+    requestAnimationFrame(this.loop);
+    this.showMainMenu();
+  }
+  setupInput() {
+    const c = this.canvas;
+    c.addEventListener('mousemove', e => {
+      const rect = c.getBoundingClientRect();
+      this.mouse.x = e.clientX - rect.left;
+      this.mouse.y = e.clientY - rect.top;
+      this.updateHover();
+    });
+    c.addEventListener('mousedown', e => {
+      this.mouse.down = true;
+      this.handleClick();
+    });
+    c.addEventListener('mouseup', () => { this.mouse.down = false; this.dragTroop = null; });
+    c.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const rect = c.getBoundingClientRect();
+      const t = e.touches[0];
+      this.mouse.x = t.clientX - rect.left;
+      this.mouse.y = t.clientY - rect.top;
+      this.mouse.down = true;
+      this.handleClick();
+    }, { passive: false });
+    c.addEventListener('touchend', () => { this.mouse.down = false; this.dragTroop = null; });
+    c.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const rect = c.getBoundingClientRect();
+      const t = e.touches[0];
+      this.mouse.x = t.clientX - rect.left;
+      this.mouse.y = t.clientY - rect.top;
+      this.updateHover();
+    }, { passive: false });
+    c.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  updateHover() {
+    const r = this.renderer;
+    const c = Math.floor(this.mouse.x / r.cellW);
+    const row = Math.floor(this.mouse.y / r.cellH);
+    this.hoveredCell = { c, row };
+  }
+  handleClick() {
+    audio.click();
+    if (this.screen === 'battle' && this.battle) {
+      const b = this.battle;
+      if (b.state === 'deploy') {
+        const c = Math.floor(this.mouse.x / this.renderer.cellW);
+        const r = Math.floor(this.mouse.y / this.renderer.cellH);
+        if (this.dragTroop) {
+          if (b.placePlayerUnit(this.dragTroop, c, r)) {
+            showToast('已放置');
+            this.dragTroop = null;
+          } else {
+            showToast('无法放置于此');
+          }
+        }
+      }
+    }
+  }
+  loop(timestamp) {
+    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
+    this.lastTime = timestamp;
+
+    if (this.screen === 'battle' && this.battle) {
+      this.battle.update(dt);
+      this.battle.render();
+    } else {
+      this.renderer.clear();
+      this.renderer.drawGrid();
+      this.renderer.drawRiver();
+    }
+
+    requestAnimationFrame(this.loop);
+  }
+  showMainMenu() {
+    this.screen = 'menu';
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;">
+        <div style="font-size:42px;font-weight:bold;color:#ffd700;text-shadow:0 0 20px rgba(255,215,0,0.5);margin-bottom:10px;">列阵千秋</div>
+        <div style="font-size:14px;color:#c8a030;margin-bottom:40px;">中国历朝历代兵种策略游戏</div>
+        <div style="display:flex;flex-direction:column;gap:12px;align-items:center;">
+          <button class="btn" onclick="game.showLevelSelect()">开始战斗</button>
+          <button class="btn btn-blue" onclick="game.showShop()">商城</button>
+          <button class="btn" onclick="game.showInventory()">背包</button>
+          <button class="btn" onclick="game.showAchievements()">成就</button>
+          <button class="btn btn-small" onclick="game.showSettings()">设置</button>
+        </div>
+        <div style="position:absolute;bottom:10px;font-size:11px;color:#666;">v1.0 HTML5版</div>
+      </div>
+    `;
+  }
+  showLevelSelect() {
+    this.screen = 'levels';
+    const state = this.state;
+    let levelsHtml = '';
+    for (let i = 1; i <= Math.min(state.maxLevel + 2, 100); i++) {
+      const locked = i > state.maxLevel;
+      levelsHtml += `<button class="btn ${locked ? '' : 'btn-green'} btn-small" style="width:60px;" ${locked ? 'disabled' : `onclick="game.startLevel(${i})"`}>${i}${locked ? '🔒' : ''}</button>`;
+    }
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div class="popup-overlay" onclick="if(event.target===this)game.showMainMenu()">
+        <div class="popup-box" style="max-width:320px;">
+          <button class="popup-close" onclick="game.showMainMenu()">×</button>
+          <div class="popup-title">选择关卡</div>
+          <div class="resource-bar">
+            <div class="resource-item resource-coin"><span class="resource-icon">💰</span>${state.coins}</div>
+            <div class="resource-item resource-jade"><span class="resource-icon">💎</span>${state.jade}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-height:300px;overflow-y:auto;">
+            ${levelsHtml}
+          </div>
+          <div style="text-align:center;margin-top:10px;font-size:12px;color:#888;">当前进度: 第${state.maxLevel}关</div>
+        </div>
+      </div>
+    `;
+  }
+  startLevel(level) {
+    this.state.level = level;
+    this.screen = 'battle';
+    this.battle = new BattleSystem(this, this.renderer);
+    this.battle.start();
+    this.updateBattleUI();
+  }
+  updateBattleUI() {
+    const ui = document.getElementById('uiLayer');
+    const b = this.battle;
+    if (!b) return;
+    const hearts = n => Array(3).fill(0).map((_,i) => `<span class="hp-heart ${i<n?'':'lost'}">❤</span>`).join('');
+    ui.innerHTML = `
+      <div class="battle-ui">
+        <div class="battle-top">
+          <div class="hp-bar">${hearts(b.enemyHp)}</div>
+          <div class="level-info">第${this.state.level}关</div>
+        </div>
+        <div class="battle-bottom">
+          <div class="hp-bar">${hearts(b.playerHp)}</div>
+          <div style="display:flex;gap:5px;">
+            ${b.state === 'deploy' ? `
+              <button class="btn btn-green btn-small" onclick="game.battle.startBattle()">开始战斗</button>
+              <button class="btn btn-small" onclick="game.resetDeploy()">重置</button>
+              <button class="btn btn-red btn-small" onclick="game.retreat()">撤退</button>
+            ` : `
+              <button class="btn btn-small" onclick="game.retreat()">撤退</button>
+            `}
+          </div>
+        </div>
+      </div>
+      ${b.state === 'deploy' ? `
+        <div style="position:absolute;bottom:50px;left:0;width:100%;display:flex;justify-content:center;gap:5px;pointer-events:auto;flex-wrap:wrap;padding:0 10px;">
+          ${this.state.inventory.filter(t => t.count > 0).map(t => {
+            const aliveCount = b.playerUnits.filter(u => u.troopUid === t.uid && u.currentHp > 0).length;
+            const canDeploy = aliveCount < (t.count || 1);
+            return `
+            <div class="troop-card ${canDeploy?'':'disabled'}" style="width:60px;padding:4px;opacity:${canDeploy?1:0.5};" ${canDeploy?`onmousedown="game.dragTroop='${t.uid}'" ontouchstart="game.dragTroop='${t.uid}'"`:''}>
+              <div class="troop-icon" style="width:30px;height:30px;font-size:14px;background:${RARITY_COLORS[t.rarity]}22;">${ROLE_ICONS[t.role]}</div>
+              <div class="troop-name" style="font-size:11px;">${t.name}</div>
+              <div class="troop-stat" style="font-size:9px;">${aliveCount}/${t.count||1}</div>
+            </div>
+          `;}).join('')}
+        </div>
+      ` : ''}
+    `;
+  }
+  resetDeploy() {
+    if (this.battle) {
+      this.battle.playerUnits = [];
+      this.updateBattleUI();
+    }
+  }
+  retreat() {
+    if (confirm('确定要撤退吗？')) {
+      this.battle = null;
+      this.screen = 'menu';
+      this.showMainMenu();
+    }
+  }
+  showBattleResult(victory) {
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div class="popup-overlay">
+        <div class="popup-box" style="text-align:center;">
+          <div class="popup-title" style="font-size:32px;color:${victory?'#44cc44':'#cc4444'};">${victory ? '胜利！' : '失败...'}</div>
+          <div style="margin:15px 0;font-size:16px;">${victory ? `通过第${this.state.level - 1}关` : '再接再厉'}</div>
+          <div style="margin-bottom:20px;">
+            <button class="btn btn-green" onclick="game.nextLevel()">${victory ? '下一关' : '重试'}</button>
+            <button class="btn" onclick="game.showMainMenu()">返回主菜单</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  nextLevel() {
+    if (this.state.level > this.state.maxLevel) this.state.level = this.state.maxLevel;
+    this.startLevel(this.state.level);
+  }
+  showShop() {
+    this.screen = 'shop';
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div class="popup-overlay" onclick="if(event.target===this)game.showMainMenu()">
+        <div class="popup-box" style="max-width:340px;">
+          <button class="popup-close" onclick="game.showMainMenu()">×</button>
+          <div class="popup-title">商城</div>
+          <div class="resource-bar">
+            <div class="resource-item resource-coin"><span class="resource-icon">💰</span>${this.state.coins}</div>
+            <div class="resource-item resource-jade"><span class="resource-icon">💎</span>${this.state.jade}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;align-items:center;margin-top:10px;">
+            <button class="btn btn-green" onclick="game.gacha('coin')">💰 100金币抽卡</button>
+            <button class="btn btn-blue" onclick="game.gacha('jade')">💎 1玉石抽卡 (必得稀有+)</button>
+            <button class="btn" onclick="game.gacha('token')">🎫 1令牌抽卡 (必得史诗+)</button>
+          </div>
+          <div style="margin-top:15px;font-size:12px;color:#888;text-align:center;">
+            累计抽卡: ${this.state.gachaCount}次
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  gacha(type) {
+    const costs = { coin: 100, jade: 1, token: 1 };
+    const currencies = { coin: 'coins', jade: 'jade', token: 'tokens' };
+    if (this.state[currencies[type]] < costs[type]) {
+      showToast('资源不足！'); return;
+    }
+    this.state[currencies[type]] -= costs[type];
+    this.state.gachaCount++;
+    this.state.checkAchievement('gacha_10', this.state.gachaCount >= 10);
+    this.state.checkAchievement('gacha_50', this.state.gachaCount >= 50);
+    audio.gacha();
+
+    // Determine rarity
+    let rarity;
+    const rand = Math.random();
+    if (type === 'token') {
+      rarity = rand < 0.5 ? '传说' : '史诗';
+    } else if (type === 'jade') {
+      if (rand < 0.15) rarity = '传说';
+      else if (rand < 0.45) rarity = '史诗';
+      else rarity = '稀有';
+    } else {
+      if (rand < 0.03) rarity = '传说';
+      else if (rand < 0.12) rarity = '史诗';
+      else if (rand < 0.35) rarity = '稀有';
+      else rarity = '普通';
+    }
+
+    const pool = TROOPS_DATA.troops.filter(t => t.rarity === rarity);
+    const troop = pool[Math.floor(Math.random() * pool.length)];
+    this.state.addTroop(troop.id);
+    this.state.checkAchievement('legendary', rarity === '传说');
+    this.state.save();
+
+    const ui = document.getElementById('uiLayer');
+    const rColor = RARITY_COLORS[rarity];
+    ui.innerHTML = `
+      <div class="popup-overlay">
+        <div class="popup-box" style="text-align:center;">
+          <div class="popup-title">获得兵种</div>
+          <div class="gacha-card-reveal" style="border-color:${rColor};box-shadow:0 0 30px ${rColor}88;">
+            <div style="font-size:48px;color:${rColor};">${ROLE_ICONS[troop.role]}</div>
+            <div style="font-size:20px;font-weight:bold;color:#ffd700;margin-top:10px;">${troop.name}</div>
+            <div style="font-size:14px;color:${rColor};margin-top:5px;">${rarity}</div>
+            <div style="font-size:12px;color:#c8a030;margin-top:5px;">${troop.dynasty} · ${troop.role}</div>
+          </div>
+          <div style="margin-top:15px;">
+            <button class="btn" onclick="game.showShop()">继续</button>
+            <button class="btn btn-green" onclick="game.gacha('${type}')">再来一次</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  showInventory() {
+    this.screen = 'inventory';
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div class="popup-overlay" onclick="if(event.target===this)game.showMainMenu()">
+        <div class="popup-box" style="max-width:360px;width:90%;">
+          <button class="popup-close" onclick="game.showMainMenu()">×</button>
+          <div class="popup-title">背包</div>
+          <div class="resource-bar">
+            <div class="resource-item resource-coin"><span class="resource-icon">💰</span>${this.state.coins}</div>
+            <div class="resource-item resource-jade"><span class="resource-icon">💎</span>${this.state.jade}</div>
+          </div>
+          <div class="card-grid" id="invGrid">
+            ${this.state.inventory.map(t => `
+              <div class="troop-card" onclick="game.showTroopDetail('${t.uid}')">
+                <div class="troop-icon" style="background:${RARITY_COLORS[t.rarity]}22;">${ROLE_ICONS[t.role]}</div>
+                <div class="troop-name">${t.name}</div>
+                <div class="troop-dynasty">${t.dynasty}</div>
+                <div class="troop-stat">⭐${t.star} 持有:${t.count||1}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="text-align:center;margin-top:10px;font-size:12px;color:#888;">点击兵种查看详情/升星</div>
+        </div>
+      </div>
+    `;
+  }
+  showTroopDetail(uid) {
+    const troop = this.state.getTroop(parseFloat(uid));
+    if (!troop) return;
+    const canUp = this.state.canUpgrade(troop);
+    const need = troop.star * 3;
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div class="popup-overlay" onclick="if(event.target===this)game.showInventory()">
+        <div class="popup-box" style="max-width:300px;">
+          <button class="popup-close" onclick="game.showInventory()">×</button>
+          <div class="popup-title">${troop.name}</div>
+          <div style="text-align:center;margin-bottom:10px;">
+            <div style="font-size:48px;color:${RARITY_COLORS[troop.rarity]};">${ROLE_ICONS[troop.role]}</div>
+            <div style="color:${RARITY_COLORS[troop.rarity]};font-weight:bold;">${troop.rarity}</div>
+          </div>
+          <div class="detail-stats">
+            <div class="detail-stat-row"><span class="detail-stat-label">朝代</span><span class="detail-stat-value">${troop.dynasty}</span></div>
+            <div class="detail-stat-row"><span class="detail-stat-label">定位</span><span class="detail-stat-value">${troop.role}</span></div>
+            <div class="detail-stat-row"><span class="detail-stat-label">占格</span><span class="detail-stat-value">${troop.size}</span></div>
+            <div class="detail-stat-row"><span class="detail-stat-label">生命</span><span class="detail-stat-value">${troop.hp}</span></div>
+            <div class="detail-stat-row"><span class="detail-stat-label">攻击</span><span class="detail-stat-value">${troop.atk}</span></div>
+            <div class="detail-stat-row"><span class="detail-stat-label">射程</span><span class="detail-stat-value">${troop.range}</span></div>
+            <div class="detail-stat-row"><span class="detail-stat-label">速度</span><span class="detail-stat-value">${troop.speed}</span></div>
+            <div class="detail-stat-row"><span class="detail-stat-label">护甲</span><span class="detail-stat-value">${troop.armor}</span></div>
+          </div>
+          <div style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;margin:10px 0;">
+            <div style="color:#ffd700;font-weight:bold;">${troop.skillName}</div>
+            <div style="font-size:13px;color:#c8a030;margin-top:4px;">${troop.skillDescription}</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:13px;color:#888;margin-bottom:8px;">持有: ${troop.count||1} / 升星需: ${need}</div>
+            <button class="btn btn-green ${canUp?'':'btn-small'}" ${canUp?'':'disabled'} onclick="game.upgradeTroop('${uid}')">
+              ${canUp?'升星 ⭐':'碎片不足'}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  upgradeTroop(uid) {
+    const troop = this.state.getTroop(parseFloat(uid));
+    if (!troop) return;
+    if (this.state.upgrade(troop)) {
+      audio.coin();
+      showToast(`${troop.name} 升星成功！⭐${troop.star}`);
+      this.state.save();
+      this.showTroopDetail(uid);
+    } else {
+      showToast('碎片不足');
+    }
+  }
+  showAchievements() {
+    this.screen = 'achievements';
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div class="popup-overlay" onclick="if(event.target===this)game.showMainMenu()">
+        <div class="popup-box" style="max-width:340px;">
+          <button class="popup-close" onclick="game.showMainMenu()">×</button>
+          <div class="popup-title">成就</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+            ${ACHIEVEMENTS.map(a => {
+              const unlocked = this.state.achievements[a.id];
+              return `
+                <div style="padding:10px;background:${unlocked?'rgba(68,170,68,0.2)':'rgba(0,0,0,0.2)'};border-radius:8px;border:1px solid ${unlocked?'#44aa44':'#555'};">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:bold;color:${unlocked?'#44cc44':'#c8a030'};">${unlocked?'✓ ':''}${a.name}</span>
+                    <span style="color:#ffd700;font-size:13px;">+${a.reward}💰</span>
+                  </div>
+                  <div style="font-size:12px;color:#888;margin-top:3px;">${a.desc}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  showSettings() {
+    this.screen = 'settings';
+    const diffNames = { 0.8: '简单', 1: '普通', 1.3: '困难' };
+    const ui = document.getElementById('uiLayer');
+    ui.innerHTML = `
+      <div class="popup-overlay" onclick="if(event.target===this)game.showMainMenu()">
+        <div class="popup-box" style="max-width:300px;text-align:center;">
+          <button class="popup-close" onclick="game.showMainMenu()">×</button>
+          <div class="popup-title">设置</div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:15px;">
+            <button class="btn" onclick="game.toggleSound()">音效: ${this.state.settings.sound?'开':'关'}</button>
+            <div style="font-size:14px;color:#c8a030;">难度: ${diffNames[this.state.settings.difficulty] || '普通'}</div>
+            <div style="display:flex;gap:8px;justify-content:center;">
+              <button class="btn btn-small ${this.state.settings.difficulty===0.8?'btn-green':''}" onclick="game.setDifficulty(0.8)">简单</button>
+              <button class="btn btn-small ${this.state.settings.difficulty===1?'btn-green':''}" onclick="game.setDifficulty(1)">普通</button>
+              <button class="btn btn-small ${this.state.settings.difficulty===1.3?'btn-green':''}" onclick="game.setDifficulty(1.3)">困难</button>
+            </div>
+            <button class="btn btn-red" onclick="game.clearSave()">清除存档</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  setDifficulty(val) {
+    this.state.settings.difficulty = val;
+    this.state.save();
+    this.showSettings();
+  }
+  toggleSound() {
+    this.state.settings.sound = !this.state.settings.sound;
+    audio.enabled = this.state.settings.sound;
+    this.state.save();
+    this.showSettings();
+  }
+  clearSave() {
+    if (confirm('确定要清除所有存档吗？此操作不可恢复！')) {
+      localStorage.removeItem('liezhenqianqiu_save');
+      location.reload();
+    }
+  }
+}
+
+// ==================== UTILITIES ====================
+function showToast(msg) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ==================== INIT ====================
+const audio = new AudioEngine();
+let game;
+document.addEventListener('DOMContentLoaded', () => {
+  game = new Game();
+});
+</script>
+</body>
+</html>
